@@ -1,6 +1,14 @@
 package cpsc326;
 
 enum TokenType {
-    EOF, AND
-        // TODO: add the token types needed by the OurPL lexer.
+    LEFT_PAREN, RIGHT_PAREN,
+    LEFT_BRACE, RIGHT_BRACE,
+    COMMA, DOT, PLUS, MINUS, STAR, SLASH, SEMICOLON,
+    EQUAL, EQUAL_EQUAL,
+    BANG, BANG_EQUAL,
+    GREATER, GREATER_EQUAL,
+    LESS, LESS_EQUAL,
+    IDENTIFIER, STRING, NUMBER,
+    AND, ELSE, FALSE, FOR, FUN, IF, NIL, OR, PRINT, RETURN, STRUCT, THIS, TRUE, VAR, WHILE,
+    EOF
 }

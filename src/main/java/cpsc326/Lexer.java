@@ -22,7 +22,20 @@ class Lexer {
     static {
         keywords = new HashMap<>();
         keywords.put("and", AND);
-        // TODO: add keywrods 
+        keywords.put("or", OR);
+        keywords.put("struct", STRUCT);
+        keywords.put("else", ELSE);
+        keywords.put("false", FALSE);
+        keywords.put("true", TRUE);
+        keywords.put("for", FOR);
+        keywords.put("fun", FUN);
+        keywords.put("if", IF);
+        keywords.put("nil", NIL);
+        keywords.put("print", PRINT);
+        keywords.put("return", RETURN);
+        keywords.put("this", THIS);
+        keywords.put("while", WHILE);
+        keywords.put("var", VAR);
         
     }
 
@@ -83,18 +96,162 @@ class Lexer {
     }
 
     private void string() {
-        // TODO: implement string()
+        // may use this for error reporting, but not allowed with current tests
+        // int stringStartLine = line;
+
+        while (peek() != '"' && !isAtEnd()) { // if not string end or file end
+            if (peek() == '\n') {
+                line++; // if string has a newline
+            }
+            
+            advance();
+        }
+
+        if (isAtEnd()) {
+            System.err.println("Unterminated string.");
+            OurPL.hadError = true;
+            return;
+        }
+
+        advance();
+
+        addToken(STRING, source.substring(start + 1, current - 1));
     }
 
     private void number() {
-        // TODO: implement number()
+        while (isDigit(peek())) { // take in the whole number
+            advance();
+        }
+
+        // look for a fractional part. ensures not just a dot after the number
+        if (peek() == '.' && isDigit(peekNext())) {
+            advance(); // take in the '.'
+            while (isDigit(peek())) {
+                advance();
+            }
+        }
+
+        addToken(NUMBER, Double.parseDouble(source.substring(start, current)));
     }
 
+
     private void identifier() {
-        // TODO: implement identifier()
+        if (source.charAt(start) == '_') { // cant start identifier with underscore
+            System.err.println("Unexpected character.");
+            OurPL.hadError = true;
+            return;
+        }
+
+        while (isAlphaNumeric(peek())) { // take in whole identifier
+            advance();
+        }
+
+        String text = source.substring(start, current); 
+        TokenType type = keywords.get(text); // check if identifier matches a keyword
+        if (type == null) { // if not, identifier
+            type = IDENTIFIER;
+        }
+
+        addToken(type);
     }
 
     private void scanToken() {
-        // TODO: implement scanToken()
+        char curr_char = advance();
+        switch (curr_char) {
+            case '(': 
+                addToken(LEFT_PAREN);
+                break;
+
+            case ')': 
+                addToken(RIGHT_PAREN);
+                break;
+
+            case '{': 
+                addToken(LEFT_BRACE);
+                break;
+
+            case '}': 
+                addToken(RIGHT_BRACE);
+                break;
+
+            case ',': 
+                addToken(COMMA);
+                break;
+
+            case '.': 
+                addToken(DOT);
+                break;
+
+            case '/': 
+                addToken(SLASH);
+                break;
+
+            case '-': 
+                addToken(MINUS);
+                break;
+
+            case '+': 
+                addToken(PLUS);
+                break;
+
+            case ';': 
+                addToken(SEMICOLON);
+                break;
+
+            case '*': 
+                addToken(STAR);
+                break;
+
+            case '!': // if next is an equal, return BANG_EQUAL, else return BANG
+                addToken(match('=') ? BANG_EQUAL : BANG);
+                break;
+
+            case '=': // if next is an equal, return EQUAL_EQUAL, else return EQUAL
+                addToken(match('=') ? EQUAL_EQUAL : EQUAL);
+                break;
+
+            case '<': // if next is an equal, return LESS_EQUAL, else return LESS
+                addToken(match('=') ? LESS_EQUAL : LESS);
+                break;
+
+            case '>': // if next is an equal, return GREATER_EQUAL, else return GREATER
+                addToken(match('=') ? GREATER_EQUAL : GREATER);
+                break;
+
+            case '#': // comment, ignores the rest of the line
+                while (peek() != '\n' && !isAtEnd()) {
+                    advance();
+                }
+                break;
+
+            // whitespace gets ignored
+            case ' ': //space
+            case '\r': // carriage return - like a newline but doesn't increment line number
+            case '\t': // tab
+                break;
+
+            case '\n': // on newline, increment line number, then go next
+                line++;
+                break;
+            
+            case '\"': // start of a string
+                string();
+                break;
+
+            default:
+                    if (isDigit(curr_char)) { // number
+                        number();
+                    } 
+                    else if (isAlpha(curr_char) || curr_char == '_') {
+                        identifier();
+                    } 
+                    else {
+                        // unexpected character
+                        System.err.println("Unexpected character.");
+                        OurPL.hadError = true;
+                    }
+                break;
+            
+        }
     }
 }
