@@ -47,12 +47,19 @@ public class OurPL {
     }
 
     public static void run(String source) {
+        // runs the lexer
         Lexer lexer = new Lexer(source);
         List<Token> tokens = lexer.scanTokens();
 
         for (Token token : tokens){
             System.out.println(token);
         }
+
+        // runs the parser
+        Parser parser = new Parser(tokens);
+        Expr expression = parser.parse();
+        ASTPrinter printer = new ASTPrinter();
+        System.out.println(printer.print(expression));
     }
 
     static void error(int line, String message) {
