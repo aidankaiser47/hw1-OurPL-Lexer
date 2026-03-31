@@ -60,6 +60,10 @@ public class OurPL {
         Expr expression = parser.parse();
         ASTPrinter printer = new ASTPrinter();
         System.out.println(printer.print(expression));
+
+        // runs the interpreter
+        Interpreter interpreter = new Interpreter();
+        interpreter.interpret(expression);
     }
 
     static void error(int line, String message) {

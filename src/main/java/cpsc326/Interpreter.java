@@ -6,7 +6,7 @@ class Interpreter implements Expr.Visitor<Object>{
             Object value = evaluate(expression);
             System.out.println(stringify(value));
         } catch (RuntimeError error) {
-            OurPL.runtimeError(error);
+            OurPL.error(-1, error.getMessage());
         }
     }
 
@@ -37,7 +37,7 @@ class Interpreter implements Expr.Visitor<Object>{
 
     private void checkNumberOperands(Token operator, Object left, Object right) {
         if (left instanceof Double && right instanceof Double) return;
-        throw new RuntimeError(operator,"Operandd must be numbers.");
+        throw new RuntimeError(operator,"Operands must be numbers.");
     }
 
     private boolean isTruthy(Object object) {
