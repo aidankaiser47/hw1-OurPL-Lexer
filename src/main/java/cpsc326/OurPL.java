@@ -70,6 +70,10 @@ public class OurPL {
         report(line, "", message);
     }
 
+    static void runtimeError(RuntimeError error) {
+        report(error.token.line, "", error.getMessage());
+    }
+
     private static void report(int line, String where, String message) {
         System.err.println("[line " + line + "] Error" + where + ": " + message);
         hadError = true;

@@ -6,7 +6,7 @@ class Interpreter implements Expr.Visitor<Object>{
             Object value = evaluate(expression);
             System.out.println(stringify(value));
         } catch (RuntimeError error) {
-            OurPL.error(-1, error.getMessage());
+            OurPL.runtimeError(error);
         }
     }
 
