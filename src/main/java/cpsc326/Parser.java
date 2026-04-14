@@ -83,16 +83,18 @@ class Parser {
     }
 
     private Expr primary() {
-        // we can match on a number, string, boolean, nil, or create a grouping with an expression 
-        if (match(NUMBER, STRING, TRUE, FALSE, NIL)) {
-            // if we match on these tokens, we make a new literal object using the 'literal' part of the token.
-            // good thing we have that
+        if (match(FALSE)) return new Expr.Literal(false);
+        if (match(TRUE)) return new Expr.Literal(true);
+        if (match(NIL)) return new Expr.Literal(null);
+
+        if (match(NUMBER, STRING)) {
             return new Expr.Literal(previous().literal);
         }
-        if (match(LEFT_PAREN)) { // if we see a parenthesis, assume its a grouping
-            Expr expr = expression(); // grab the expression from inside
-            consume(RIGHT_PAREN, "Missing ')' after expression."); // check if parentheses end.
-            return new Expr.Grouping(expr); // create the grouping object with the expression inside
+
+        if (match(LEFT_PAREN)) {
+            Expr expr = expression();
+            consume(RIGHT_PAREN, "Missing ')' after expression.");
+            return new Expr.Grouping(expr);
         }
 
         throw error(peek(), "Expect expression.");

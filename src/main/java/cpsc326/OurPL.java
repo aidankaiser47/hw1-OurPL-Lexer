@@ -27,9 +27,11 @@ public class OurPL {
         run(new String(bytes, Charset.defaultCharset()));
 
         if (hadError) System.exit(65);
+        if (hadRuntimeError) System.exit(70);
     }
 
     static boolean hadError = false;
+    static boolean hadRuntimeError = false;
 
     public static void runPrompt() throws IOException {
         InputStreamReader input = new InputStreamReader(System.in);
@@ -51,9 +53,10 @@ public class OurPL {
         Lexer lexer = new Lexer(source);
         List<Token> tokens = lexer.scanTokens();
 
-        for (Token token : tokens){
-            System.out.println(token);
-        }
+        // removed for now, no need to print each token anymore.
+        // for (Token token : tokens){
+        //     System.out.println(token);
+        // }
 
         // runs the parser
         Parser parser = new Parser(tokens);
@@ -72,6 +75,7 @@ public class OurPL {
 
     static void runtimeError(RuntimeError error) {
         report(error.token.line, "", error.getMessage());
+        hadRuntimeError = true;
     }
 
     private static void report(int line, String where, String message) {
