@@ -1,6 +1,7 @@
 package cpsc326;
 
 import java.util.List;
+import java.util.ArrayList;
 import static cpsc326.TokenType.*;
 
 class Parser {
@@ -13,24 +14,112 @@ class Parser {
         this.tokens = tokens;
     }
 
-    Expr parse() {
+    List<Stmt> parse() {
         try {
-            return expression();
+            List<Stmt> declarations = new ArrayList<Stmt>();
+            while (!isAtEnd()) {
+                declarations.add(declaration());
+            }
+            return declarations;
         } catch (ParseError error) {
             return null;
         }
     }
 
-    private Expr expression() {
-        // currently only converts into equality
-        return equality();
+    private Stmt declaration() {
+        try {
+            if (match(VAR)) { // if match on VAR, then it is a variable declaration
+                return varDeclaration();
+            }
+            return statement(); // else, a basic statement
+        } 
+        catch (ParseError error) {
+            synchronize();
+            return null;
+        }
     }
 
+    private Stmt varDeclaration() {
+        Token name = consume(IDENTIFIER, "Expect variable name."); // consumes variable name
+
+        Expr initializer = null; // option to have initializer. If there is not one, it will be null
+        if (match(EQUAL)) { // if there is an equal sign, then there is an initializer
+            initializer = expression();
+        }
+
+        consume(SEMICOLON, "Expect ';' after variable declaration.");
+        return new Stmt.VarDecl(name, initializer);
+    }
+
+    private Stmt statement() {
+        // WILL NEED TO ADD OTHER TYPES OF STATEMENTS STILL
+
+        if (match(PRINT)) { // if the next token is print, consume it and return a print statement
+            return printStatement();
+        }
+        else {
+            return expressionStatement();
+        }
+    }
+
+    private Stmt printStatement() {
+        Expr expr = expression(); // converts the expression after print into an Expr object
+        if (match(SEMICOLON)) {  // if there is a semicolon, consume it and return the print statement with the expression
+            return new Stmt.Print(expr);
+        }
+        throw error(peek(), "Expect ';' after value.");
+    }
+
+    private Stmt expressionStatement() {
+        Expr expr = expression(); // converts the expression into an Expr object, which will be used in the expression statement
+        if (match(SEMICOLON)) { // if there is a semicolon, consume it and return the expression statement
+            return new Stmt.Expression(expr);
+        }
+        throw error(peek(), "Expect ';' after expression.");
+    }
+
+    private Expr expression() {
+        // converts into assignment
+        return assignment();
+    }
+
+    private Expr assignment() {
+        // either an identifier = assignment, or a logical or
+        if (match(EQUAL)) {
+            Token name = previous();
+            Expr value = assignment();
+            return new Expr.Assign(name, value);
+        }
+        return logicalOr();
+
+    }
+
+    private Expr logicalOr() {
+        // converts to a logical and, with potentially or 0 or more times
+        Expr expr = logicalAnd();
+        while (match(OR)) { 
+            Token operator = previous();
+            Expr right = logicalAnd(); // set the right side as another logical and
+            expr = new Expr.Logical(expr, operator, right); // creates a new logical expression with all the goods
+        }
+        return expr;
+    }
+
+    private Expr logicalAnd() {
+        //converts to an equality, with a potential for and 0 or more times
+        Expr expr = equality();
+        while (match(AND)) { 
+            Token operator = previous();
+            Expr right = equality(); // set the right side as another equality
+            expr = new Expr.Logical(expr, operator, right); // creates a new logical expression with all the goods
+        }
+        return expr;
+    }
     private Expr equality() {
         // converts to a comparison, with potentially == or != 0 or more times
         Expr expr = comparison();
-        while (match (BANG_EQUAL, EQUAL_EQUAL)) { // checks to see if next is != or ==
-            Token operator = previous(); // if it matches, consume operator
+        while (match (BANG_EQUAL, EQUAL_EQUAL)) {
+            Token operator = previous(); // get operator
             Expr right = comparison(); // set the right side as a comparison
             expr = new Expr.Binary(expr, operator, right); // create a binary (comparison == more comparison)
         }

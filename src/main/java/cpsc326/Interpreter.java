@@ -1,13 +1,20 @@
 package cpsc326;
 
-class Interpreter implements Expr.Visitor<Object>{
-    void interpret(Expr expression) {
+import java.util.List;
+
+class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
+    void interpret(List<Stmt> statements) {
         try {
-            Object value = evaluate(expression);
-            System.out.println(stringify(value));
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
         } catch (RuntimeError error) {
             OurPL.runtimeError(error);
         }
+    }
+
+    private void execute(Stmt stmt) {
+        stmt.accept(this);
     }
 
     @Override
@@ -27,6 +34,44 @@ class Interpreter implements Expr.Visitor<Object>{
                 return !isTruthy(right);
         }
 
+        return null;
+    }
+
+    @Override
+    public Object visitVariableExpr(Expr.Variable expr) {
+        return null;
+    }
+    
+    @Override
+    public Object visitAssignExpr(Expr.Assign expr) {
+        return null; 
+    }
+
+    @Override
+    public Object visitLogicalExpr(Expr.Logical expr) {
+        return null;
+    }
+
+    @Override
+    public Void visitExpressionStatement(Stmt.Expression stmt) {
+        evaluate(stmt.expression); // evaluate the expression but ignore the result
+        return null;
+    }
+
+    @Override
+    public Void visitPrintStatement(Stmt.Print stmt) {
+        Object value = evaluate(stmt.expression); // evaluate the expression and print the result
+        System.out.println(stringify(value)); // use stringify to convert the value to a string before printing
+        return null;
+    }
+
+    @Override
+    public Void visitVarDeclaration(Stmt.VarDecl stmt) {
+        // sets the variable to its value if it has one
+        Object value = null;
+        if (stmt.initializer != null) {
+            value = evaluate(stmt.initializer);
+        }
         return null;
     }
 

@@ -60,13 +60,15 @@ public class OurPL {
 
         // runs the parser
         Parser parser = new Parser(tokens);
-        Expr expression = parser.parse();
-        ASTPrinter printer = new ASTPrinter();
-        System.out.println(printer.print(expression));
+        List<Stmt> statements = parser.parse();
+        // ASTPrinter printer = new ASTPrinter();
+        // for (Stmt statement : statements) {
+        //     System.out.println(printer.print(statement));
+        // }
 
         // runs the interpreter
         Interpreter interpreter = new Interpreter();
-        interpreter.interpret(expression);
+        interpreter.interpret(statements);
     }
 
     static void error(int line, String message) {
