@@ -3,6 +3,8 @@ package cpsc326;
 import java.util.List;
 
 class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
+    private Environment environment = new Environment();
+
     void interpret(List<Stmt> statements) {
         try {
             for (Stmt statement : statements) {
@@ -14,7 +16,9 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     private void execute(Stmt stmt) {
+        if (stmt != null) {
         stmt.accept(this);
+        }
     }
 
     @Override
@@ -39,17 +43,28 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Object visitVariableExpr(Expr.Variable expr) {
-        return null;
+        return environment.get(expr.name);
     }
     
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
-        return null; 
+        Object value = evaluate(expr.value);
+        environment.assign(expr.name, value);
+        return value;
     }
 
     @Override
     public Object visitLogicalExpr(Expr.Logical expr) {
-        return null;
+        Object left = evaluate(expr.left);
+
+        if (expr.operator.type == TokenType.OR) {
+            if (isTruthy(left)) return left; // short-circuit: return left if truthy
+        } 
+        else {
+            if (!isTruthy(left)) return left; // AND: short-circuit if left is falsy
+        }
+
+        return evaluate(expr.right);
     }
 
     @Override
@@ -61,18 +76,58 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Void visitPrintStatement(Stmt.Print stmt) {
         Object value = evaluate(stmt.expression); // evaluate the expression and print the result
-        System.out.println(stringify(value)); // use stringify to convert the value to a string before printing
+        System.out.print(stringify(value) + "\n"); // use stringify to convert the value to a string before printing
         return null;
     }
 
     @Override
-    public Void visitVarDeclaration(Stmt.VarDecl stmt) {
-        // sets the variable to its value if it has one
+    public Void visitVarDeclaration(Stmt.Var stmt) {
         Object value = null;
         if (stmt.initializer != null) {
             value = evaluate(stmt.initializer);
         }
+        environment.define(stmt.name.lexeme, value);
         return null;
+    }
+
+    @Override
+    public Void visitBlockStatement(Stmt.Block stmt) {
+        executeBlock(stmt.statements, new Environment(environment)); // creates a new environment for the block, with the current environment as its enclosing environment
+        return null;
+    }
+
+    @Override
+    public Void visitIfStatement(Stmt.If stmt) {
+        if (isTruthy(evaluate(stmt.condition))) { // if the condition is true, execute the then branch
+            execute(stmt.thenBranch);
+        }
+        else if (stmt.elseBranch != null) { // if the condition is false and there is an else branch, execute the else branch
+            execute(stmt.elseBranch);
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitWhileStatement(Stmt.While stmt) {
+        while (isTruthy(evaluate(stmt.condition))) { // while the condition is true, execute the body of the while loop
+            execute(stmt.body);
+        }
+        return null;
+    }
+
+    void executeBlock(List<Stmt> statements, Environment env) {
+        Environment previous = this.environment; // save the previous environment
+        try {
+            this.environment = env; // set the current environment to the new environment
+            for (Stmt statement : statements) { // execute each statement in the block
+                if (statement != null) {
+                    execute(statement);
+                }
+            }
+        } 
+        finally {
+            this.environment = previous; // restore the previous environment after executing the block
+        }
     }
 
     private void checkNumberOperand(Token operator, Object operand) {

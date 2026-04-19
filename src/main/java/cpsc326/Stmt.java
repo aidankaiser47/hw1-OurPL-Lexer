@@ -3,16 +3,19 @@ package cpsc326;
 import java.util.List;
 
 abstract class Stmt {
-// Block : List<Stmt>
+// Block : List<Stmt>            DONE
 // Expression : Expr             DONE
-// If : Expr, Stmt, Stmt
+// If : Expr, Stmt, Stmt         DONE
 // Print : Stmt                  DONE
 // Var : Token, Expr             DONE
-// While : Expr, Stmt
+// While : Expr, Stmt            DONE
         interface Visitor<R> {
             R visitExpressionStatement(Stmt.Expression stmt);
             R visitPrintStatement(Stmt.Print stmt);
-            R visitVarDeclaration(Stmt.VarDecl stmt);
+            R visitVarDeclaration(Stmt.Var stmt);
+            R visitBlockStatement(Stmt.Block stmt);
+            R visitIfStatement(Stmt.If stmt);
+            R visitWhileStatement(Stmt.While stmt);
         }
 
         static class Expression extends Stmt {
@@ -41,11 +44,11 @@ abstract class Stmt {
             }
         }
 
-        static class VarDecl extends Stmt {
+        static class Var extends Stmt {
             final Token name;
             final Expr initializer;
 
-            VarDecl(Token id, Expr expr) {
+            Var(Token id, Expr expr) {
                 name = id;
                 initializer = expr;
             }
@@ -53,6 +56,51 @@ abstract class Stmt {
             @Override
             <R> R accept(Visitor<R> visitor) {
                 return visitor.visitVarDeclaration(this);
+            }
+        }
+
+        static class Block extends Stmt {
+            final List<Stmt> statements;
+
+            Block(List<Stmt> stmts) {
+                statements = stmts;
+            }
+
+            @Override
+            <R> R accept(Visitor<R> visitor) {
+                return visitor.visitBlockStatement(this);
+            }
+        }
+
+        static class If extends Stmt {
+            final Expr condition;
+            final Stmt thenBranch;
+            final Stmt elseBranch;
+
+            If(Expr cond, Stmt thenBr, Stmt elseBr) {
+                condition = cond;
+                thenBranch = thenBr;
+                elseBranch = elseBr;
+            }
+
+            @Override
+            <R> R accept(Visitor<R> visitor) {
+                return visitor.visitIfStatement(this);
+            }
+        }
+
+        static class While extends Stmt {
+            final Expr condition;
+            final Stmt body;
+
+            While(Expr cond, Stmt body) {
+                condition = cond;
+                this.body = body;
+            }
+
+            @Override
+            <R> R accept(Visitor<R> visitor) {
+                return visitor.visitWhileStatement(this);
             }
         }
 

@@ -15,15 +15,12 @@ class Parser {
     }
 
     List<Stmt> parse() {
-        try {
-            List<Stmt> declarations = new ArrayList<Stmt>();
-            while (!isAtEnd()) {
-                declarations.add(declaration());
-            }
-            return declarations;
-        } catch (ParseError error) {
-            return null;
+        List<Stmt> declarations = new ArrayList<Stmt>();
+        while (!isAtEnd()) {
+            Stmt stmt = declaration();
+                declarations.add(stmt);
         }
+        return declarations;
     }
 
     private Stmt declaration() {
@@ -48,18 +45,118 @@ class Parser {
         }
 
         consume(SEMICOLON, "Expect ';' after variable declaration.");
-        return new Stmt.VarDecl(name, initializer);
+        return new Stmt.Var(name, initializer);
     }
 
     private Stmt statement() {
-        // WILL NEED TO ADD OTHER TYPES OF STATEMENTS STILL
+        if (match(IF)) {
+            return ifStatement();
+        }
 
-        if (match(PRINT)) { // if the next token is print, consume it and return a print statement
+        if (match(FOR)) {
+            return forStatement();
+        }
+
+        if (match(WHILE)) {
+            return whileStatement();
+        }
+
+        if (match(LEFT_BRACE)) {
+            return new Stmt.Block(block());
+        }
+
+        if (match(PRINT)) {
             return printStatement();
         }
-        else {
-            return expressionStatement();
+
+        return expressionStatement();
+    }
+
+    private Stmt ifStatement() {
+        consume(LEFT_PAREN, "Expect '(' after 'if'.");
+        Expr condition = expression();
+        consume(RIGHT_PAREN, "Expect ')' after if condition.");
+
+        Stmt thenBranch = statement();
+        Stmt elseBranch = null;
+        if (match(ELSE)) {
+            elseBranch = statement();
         }
+
+        return new Stmt.If(condition, thenBranch, elseBranch);
+    }
+
+    private Stmt whileStatement() {
+        consume(LEFT_PAREN, "Expect '(' after 'while'.");
+        Expr condition = expression();
+        consume(RIGHT_PAREN, "Expect ')' after condition.");
+        Stmt body = statement();
+
+        return new Stmt.While(condition, body);
+    }
+
+    private Stmt forStatement() {
+        consume(LEFT_PAREN, "Expect '(' after 'for'.");
+
+        // initializer clause
+        Stmt initializer;
+        if (match(SEMICOLON)) {
+            initializer = null;                  // no initializer: for(; ...)
+        } else if (match(VAR)) {
+            initializer = varDeclaration();      // for(var i = 0; ...)
+        } else {
+            initializer = expressionStatement(); // for(i = 0; ...)
+        }
+
+        // condition clause
+        Expr condition = null;
+        if (!check(SEMICOLON)) {
+            condition = expression();
+        }
+        consume(SEMICOLON, "Expect ';' after loop condition.");
+
+        // increment clause
+        Expr increment = null;
+        if (!check(RIGHT_PAREN)) {
+            increment = expression();
+        }
+        consume(RIGHT_PAREN, "Expect ')' after for clauses.");
+
+        Stmt body = statement();
+
+        // desugar increment into end of body
+        if (increment != null) {
+            List<Stmt> bodyWithIncrement = new ArrayList<>();
+            bodyWithIncrement.add(body);
+            bodyWithIncrement.add(new Stmt.Expression(increment));
+            body = new Stmt.Block(bodyWithIncrement);
+        }
+
+        if (condition == null) {
+            condition = new Expr.Literal(true);
+        }
+        body = new Stmt.While(condition, body);
+
+        if (initializer != null) {
+            List<Stmt> outerBlock = new ArrayList<>();
+            outerBlock.add(initializer);
+            outerBlock.add(body);
+            body = new Stmt.Block(outerBlock);
+        }
+
+        return body;
+    }
+
+    private List<Stmt> block() {
+        List<Stmt> statements = new ArrayList<Stmt>();
+
+        while (!check(RIGHT_BRACE) && !isAtEnd()) {
+            Stmt stmt = declaration();
+                statements.add(stmt);
+        }
+
+        consume(RIGHT_BRACE, "Expect '}' after block.");
+        return statements;
     }
 
     private Stmt printStatement() {
@@ -84,14 +181,19 @@ class Parser {
     }
 
     private Expr assignment() {
-        // either an identifier = assignment, or a logical or
-        if (match(EQUAL)) {
-            Token name = previous();
-            Expr value = assignment();
-            return new Expr.Assign(name, value);
-        }
-        return logicalOr();
+        Expr expr = logicalOr();             // parse left side first
 
+        if (match(EQUAL)) {
+            Token equals = previous();
+            Expr value = assignment();       // parse right side recursively
+            if (expr instanceof Expr.Variable) {
+                Token name = ((Expr.Variable) expr).name;
+                return new Expr.Assign(name, value);
+            }
+            error(equals, "Invalid assignment target.");
+        }
+
+        return expr;
     }
 
     private Expr logicalOr() {
@@ -172,12 +274,22 @@ class Parser {
     }
 
     private Expr primary() {
-        if (match(FALSE)) return new Expr.Literal(false);
-        if (match(TRUE)) return new Expr.Literal(true);
-        if (match(NIL)) return new Expr.Literal(null);
+        if (match(FALSE)) {
+            return new Expr.Literal(false);
+        }
+        if (match(TRUE)) {
+            return new Expr.Literal(true);
+        }
+        if (match(NIL)) {
+            return new Expr.Literal(null);
+        }
 
         if (match(NUMBER, STRING)) {
             return new Expr.Literal(previous().literal);
+        }
+
+        if (match(IDENTIFIER)) {
+            return new Expr.Variable(previous());
         }
 
         if (match(LEFT_PAREN)) {

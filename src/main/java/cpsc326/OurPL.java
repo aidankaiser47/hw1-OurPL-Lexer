@@ -53,18 +53,9 @@ public class OurPL {
         Lexer lexer = new Lexer(source);
         List<Token> tokens = lexer.scanTokens();
 
-        // removed for now, no need to print each token anymore.
-        // for (Token token : tokens){
-        //     System.out.println(token);
-        // }
-
         // runs the parser
         Parser parser = new Parser(tokens);
         List<Stmt> statements = parser.parse();
-        // ASTPrinter printer = new ASTPrinter();
-        // for (Stmt statement : statements) {
-        //     System.out.println(printer.print(statement));
-        // }
 
         // runs the interpreter
         Interpreter interpreter = new Interpreter();
