@@ -4,6 +4,9 @@ import java.util.Map;
 import java.util.HashMap;
 
 public class Environment {
+    // environment class that handles variable scoping and storage.
+    // each environment has a reference to its enclosing environment, allowing for nested scopes!
+
     Environment enclosing;
     Map<String, Object> values = new HashMap<String, Object>();
 
@@ -19,12 +22,12 @@ public class Environment {
         values.put(name, value);
     }
 
-    Object get(Token name) { // get the value of a variable. 
-        if (values.containsKey(name.lexeme)) {
+    Object get(Token name) { // get the value of a variable
+        if (values.containsKey(name.lexeme)) { // match with env hashmap
             return values.get(name.lexeme);
         }
 
-        // If it is not in the current environment, check the enclosing environment
+        // if it is not in the current environment, check the enclosing environment
         if (enclosing != null) {
             return enclosing.get(name);
         }
@@ -33,7 +36,7 @@ public class Environment {
     }
 
     void assign(Token name, Object value) { // assign a new value to an existing var
-        if (values.containsKey(name.lexeme)) {
+        if (values.containsKey(name.lexeme)) { // check current env hashmap
             values.put(name.lexeme, value);
             return;
         }

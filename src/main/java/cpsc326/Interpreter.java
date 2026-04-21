@@ -7,8 +7,8 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     void interpret(List<Stmt> statements) {
         try {
-            for (Stmt statement : statements) {
-                execute(statement);
+            for (Stmt statement : statements) { // goes through our parser statements
+                execute(statement); // executes one by one
             }
         } catch (RuntimeError error) {
             OurPL.runtimeError(error);
@@ -43,25 +43,29 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Object visitVariableExpr(Expr.Variable expr) {
-        return environment.get(expr.name);
+        return environment.get(expr.name); // returns variable value from env
     }
     
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
-        environment.assign(expr.name, value);
+        environment.assign(expr.name, value); // sets variable value in env
         return value;
     }
 
     @Override
     public Object visitLogicalExpr(Expr.Logical expr) {
-        Object left = evaluate(expr.left);
+        Object left = evaluate(expr.left); // looks at left first for short-circuiting
 
         if (expr.operator.type == TokenType.OR) {
-            if (isTruthy(left)) return left; // short-circuit: return left if truthy
+            if (isTruthy(left)) {
+                return left; // short circtuit: return left if true
+            }
         } 
         else {
-            if (!isTruthy(left)) return left; // AND: short-circuit if left is falsy
+            if (!isTruthy(left)) {
+                return left; // short-circuit: return false if left is false
+            }
         }
 
         return evaluate(expr.right);
@@ -83,7 +87,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Void visitVarDeclaration(Stmt.Var stmt) {
         Object value = null;
-        if (stmt.initializer != null) {
+        if (stmt.initializer != null) { // sets var value to the initialized value if it eists
             value = evaluate(stmt.initializer);
         }
         environment.define(stmt.name.lexeme, value);
@@ -125,7 +129,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                 }
             }
         } 
-        finally {
+        finally { // runs this even if the try throws an execption
             this.environment = previous; // restore the previous environment after executing the block
         }
     }

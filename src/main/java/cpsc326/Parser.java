@@ -15,12 +15,12 @@ class Parser {
     }
 
     List<Stmt> parse() {
-        List<Stmt> declarations = new ArrayList<Stmt>();
+        List<Stmt> declarations = new ArrayList<Stmt>(); // everything is now a statement
         while (!isAtEnd()) {
             Stmt stmt = declaration();
                 declarations.add(stmt);
         }
-        return declarations;
+        return declarations; // returns list for use in interpreter
     }
 
     private Stmt declaration() {
@@ -98,60 +98,62 @@ class Parser {
     private Stmt forStatement() {
         consume(LEFT_PAREN, "Expect '(' after 'for'.");
 
-        // initializer clause
-        Stmt initializer;
+        // initializer part
+        Stmt initializer; // different cases to check
         if (match(SEMICOLON)) {
-            initializer = null;                  // no initializer: for(; ...)
-        } else if (match(VAR)) {
-            initializer = varDeclaration();      // for(var i = 0; ...)
-        } else {
-            initializer = expressionStatement(); // for(i = 0; ...)
+            initializer = null; // no initializer: for (; ...)
+        } 
+        else if (match(VAR)) {
+            initializer = varDeclaration(); // for (var i = 0; ...)
+        } 
+        else {
+            initializer = expressionStatement(); // for (i = 0; ...)
         }
 
-        // condition clause
+        // condition part
         Expr condition = null;
-        if (!check(SEMICOLON)) {
+        if (!check(SEMICOLON)) { // if semicolon, no condition
             condition = expression();
         }
         consume(SEMICOLON, "Expect ';' after loop condition.");
 
-        // increment clause
+        // increment part
         Expr increment = null;
-        if (!check(RIGHT_PAREN)) {
+        if (!check(RIGHT_PAREN)) { // if right paren, no increment included
             increment = expression();
         }
         consume(RIGHT_PAREN, "Expect ')' after for clauses.");
 
         Stmt body = statement();
 
-        // desugar increment into end of body
-        if (increment != null) {
-            List<Stmt> bodyWithIncrement = new ArrayList<>();
+        // desugaring
+        if (increment != null) { // if theres an increment section...
+            List<Stmt> bodyWithIncrement = new ArrayList<>(); // block with body and increment part
             bodyWithIncrement.add(body);
             bodyWithIncrement.add(new Stmt.Expression(increment));
             body = new Stmt.Block(bodyWithIncrement);
         }
 
-        if (condition == null) {
+        if (condition == null) { // if no condition, use true as condition for infinite loop
             condition = new Expr.Literal(true);
         }
-        body = new Stmt.While(condition, body);
+        body = new Stmt.While(condition, body); // add it to the while loop construction
 
-        if (initializer != null) {
-            List<Stmt> outerBlock = new ArrayList<>();
+        if (initializer != null) { // if theres an itializer...
+            List<Stmt> outerBlock = new ArrayList<>(); // block with initializer and while loop
             outerBlock.add(initializer);
             outerBlock.add(body);
             body = new Stmt.Block(outerBlock);
         }
 
-        return body;
+        return body; // returns a while loop statement
     }
 
     private List<Stmt> block() {
         List<Stmt> statements = new ArrayList<Stmt>();
 
-        while (!check(RIGHT_BRACE) && !isAtEnd()) {
-            Stmt stmt = declaration();
+        while (!check(RIGHT_BRACE) && !isAtEnd()) { // while no right brace and not end of file...
+            Stmt stmt = declaration(); // add statements into the block
                 statements.add(stmt);
         }
 
@@ -181,11 +183,11 @@ class Parser {
     }
 
     private Expr assignment() {
-        Expr expr = logicalOr();             // parse left side first
+        Expr expr = logicalOr(); // parse left side first
 
         if (match(EQUAL)) {
             Token equals = previous();
-            Expr value = assignment();       // parse right side recursively
+            Expr value = assignment(); // parse right side recursively
             if (expr instanceof Expr.Variable) {
                 Token name = ((Expr.Variable) expr).name;
                 return new Expr.Assign(name, value);
@@ -217,6 +219,7 @@ class Parser {
         }
         return expr;
     }
+
     private Expr equality() {
         // converts to a comparison, with potentially == or != 0 or more times
         Expr expr = comparison();

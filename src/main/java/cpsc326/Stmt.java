@@ -3,12 +3,8 @@ package cpsc326;
 import java.util.List;
 
 abstract class Stmt {
-// Block : List<Stmt>            DONE
-// Expression : Expr             DONE
-// If : Expr, Stmt, Stmt         DONE
-// Print : Stmt                  DONE
-// Var : Token, Expr             DONE
-// While : Expr, Stmt            DONE
+
+    // handles all types of statements in OurPL
         interface Visitor<R> {
             R visitExpressionStatement(Stmt.Expression stmt);
             R visitPrintStatement(Stmt.Print stmt);
@@ -89,6 +85,7 @@ abstract class Stmt {
             }
         }
 
+        // handles both While and For statements
         static class While extends Stmt {
             final Expr condition;
             final Stmt body;
