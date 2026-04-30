@@ -25,6 +25,9 @@ class Parser {
 
     private Stmt declaration() {
         try {
+            if (match(FUN)) { // match on functions
+                return function("function");
+            }
             if (match(VAR)) { // if match on VAR, then it is a variable declaration
                 return varDeclaration();
             }
@@ -34,6 +37,26 @@ class Parser {
             synchronize();
             return null;
         }
+    }
+
+    private Stmt.Function function(String kind) {
+        Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
+        consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
+        
+        List<Token> params = new ArrayList<>();
+        if (!check(RIGHT_PAREN)) {
+            do {
+                if (params.size() >= 255) {
+                    error(peek(), "Can't have more than 255 parameters.");
+                }
+                params.add(consume(IDENTIFIER, "Expect parameter name."));
+            } while (match(COMMA));
+        }
+        consume(RIGHT_PAREN, "Expect ')' after parameters.");
+
+        consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
+        List<Stmt> body = block();
+        return new Stmt.Function(name, params, body);
     }
 
     private Stmt varDeclaration() {
@@ -49,6 +72,9 @@ class Parser {
     }
 
     private Stmt statement() {
+        if (match(RETURN)) {
+            return returnStatement();
+        }
         if (match(IF)) {
             return ifStatement();
         }
@@ -70,6 +96,16 @@ class Parser {
         }
 
         return expressionStatement();
+    }
+
+    private Stmt returnStatement() {
+        Token keyword = previous();
+        Expr value = null;
+        if (!check(SEMICOLON)) {
+            value = expression();
+        }
+        consume(SEMICOLON, "Expect ';' after return value.");
+        return new Stmt.Return(keyword, value);
     }
 
     private Stmt ifStatement() {
@@ -273,7 +309,35 @@ class Parser {
             Expr right = unary(); // when we run this function, it will check again for another ! or -, so there can be multiple
             return new Expr.Unary(operator, right); // creates a unary object this time because there is only 1 term
         }
-        return primary(); // if it does not match on the operator, it will be a primary
+        return call(); // if it does not match on the operator, it will be a call
+    }
+
+    private Expr call() {
+        // converts to a primary, with potentially a call 0 or more times
+        Expr expr = primary();
+
+        while (true) { // can be multiple calls
+            if (match(LEFT_PAREN)) { // left paren means a function call
+                expr = finishCall(expr);
+            } else {
+                break;
+            }
+        }
+        return expr;
+    }
+
+    private Expr finishCall(Expr callee) { // used to finish a call expression and perform more checks
+        List<Expr> arguments = new ArrayList<>();
+        if (!check(RIGHT_PAREN)) { // if not right paren immediately, that means arguments
+            do {
+                if (arguments.size() >= 255) { // check for too many arguments
+                    error(peek(), "Can't have more than 255 arguments.");
+                }
+                arguments.add(expression()); // evaluate each argument and add it to list
+            } while (match(COMMA));
+        }
+        Token paren = consume(RIGHT_PAREN, "Expect ')' after arguments.");
+        return new Expr.Call(callee, paren, arguments);
     }
 
     private Expr primary() {
